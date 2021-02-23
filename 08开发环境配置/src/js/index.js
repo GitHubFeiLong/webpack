@@ -1,6 +1,6 @@
 // 引入 iconfont 样式文件
-import './iconfont.css';
-import './index.less'
+import '../css/iconfont.css';
+import '../css/index.less';
 
 function add(x,y){
     return x+y;

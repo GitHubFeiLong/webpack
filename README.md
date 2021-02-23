@@ -1,6 +1,6 @@
 # webpack
 观看尚硅谷webpack视频教程进行动手实战
-> 目前看到第9节6分钟
+> 目前看到第12节已完成
 
 <!-- 下载webpack -->
 npm i webpack webpack-cli -D
@@ -188,6 +188,7 @@ module:{
 ```
 
 ## 07devServer
++ 自动编译，自动打开浏览器等自动化
 ```javascript
 module.exports = {
     /* 
@@ -208,3 +209,50 @@ module.exports = {
     }
 }
 ```
+## 08开发环境配置
++ 将文件进行分类，js放入js文件夹下，样式文件放入css文件夹下，图片文件放入imgs目录下，其它文件放入media文件下。
++ 修改各文件的路径
++ 将编译后的文件也进行分类
+> 注意：样式文件编译后不会输出单独的文件，因为它会写进js文件内
+    ```javascript
+    module: {
+        rules:[
+            {
+                // 处理图片资源
+                test:/\.(jpg|png|gif)$/,
+                loader: 'url-loader',
+                options:{
+                    limit: 8 * 1024,
+                    name : '[hash:10].[ext]',
+                    // 关闭es6模块化
+                    esModule: false,
+                    outputPath: 'imgs'
+                }
+            },
+            {
+                // 处理其他资源
+                exclude:/\.(css|js|html|less|jpg|png|gif)$/,
+                loader:'file-loader',
+                options:{
+                    name: '[hash:10].[ext]',
+                    outputPath: 'media'
+                }
+            }
+        ]
+    },
+    ```
+
+
+## 09提取css成单独文件
+> 前面，的css文件是使用css-loader和style-loader 将样式写入js文件的style标签里面。
+坏处：js文件体积大，容易闪屏
+学习一个新的插件 mini-css-extract-plugin
++ 安装： npm i mini-css-extract-plugin -D
++ 定义（webpack.config.js）：const MiniCssExtractPlugin = require('mini-css-extract-plugin')
++ 将 css文件中的style-loader,改为 MiniCssExtractPlugin.loader
++ 在plugins 追加
+    new MiniCssExtractPlugin({
+            // 对输出的css文件重命名
+            filename: 'css/built.css'
+    })
++ 结果：css文件编译后在build/css/built.css下    
