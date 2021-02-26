@@ -18,7 +18,7 @@ module.exports = {
                         "extends":"airbnb-base"
                     }
 
-                    airbnb 需要下载 ---> eslint-config-airbnb-base  eslint-plugin-import eslint
+                    airbnb 需要下载 ---> npm i eslint-config-airbnb-base eslint-plugin-import eslint eslint-loader -D
             */
            {
                // 匹配js文件

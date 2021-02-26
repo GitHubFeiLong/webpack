@@ -2,15 +2,19 @@
 观看尚硅谷webpack视频教程进行动手实战
 > 目前看到第22节已完成
 
+## 初始化 package.json
+输入指令: npm init
+<!-- 下载webpack -->
+npm i webpack webpack-cli -D
+<!-- 运行 -->
+webpack
+
 ## npm下载时使用国内镜像
 ```bash
 npm config set registry https://registry.npm.taobao.org
 ```
 
-<!-- 下载webpack -->
-npm i webpack webpack-cli -D
-<!-- 运行 -->
-webpack
+
 
 ## 01webpack简介
 + less 浏览器不会解析，需要转换成css
@@ -622,4 +626,308 @@ module:{
     },
 ```
 
-## 啊
+## 21缓存
+1. babel缓存
+   cacheDirectory:true ---> 让第二次打包速度更快
+   使用方式：
+```javscript
+ {
+    test:/\.js$/,
+    exclude:/node_modules/,
+    loader:'babel-loader',
+    options:{
+        presets:[
+            [
+                '@babel/preset-env',
+                {
+                    useBuiltIns:'usage',
+                    corejs:{
+                        version:3
+                    },
+                    targets:{
+                        chrome:'60'
+                    }
+                }
+            ]
+        ],
+        // 开启babel缓存
+        // 第二次构建时，会读取之前的缓存
+        cacheDirectory:true
+    }
+},
+```
+2. 文件缓存
+            hash:每次webpack构建时会生成一个唯一的hash值
+            问题：因为css和js同时使用一个hash值，如果重新打包，会导致所有缓存失效（可能改动一个文件，导致所有缓存失效）
+3. chunkhash ：根据chunk生成的hash值。如果打包来源同一个chunk，那么hash值就一样 
+            问题：js和css的hash值还是一样的，因为css是在js中被引入的，所以同属于一个chunk
+4. contenthash:根据文件的内容生成hash值，不同文件hash值一定不一样   ---> 让代码上线运行缓存更好使用
+> filename:'css/built.[contenthash:10].css' contenthash可以改成hash，chunkhash
+
+## 22tree shaking
+> 将没有使用的代码不进行打包
+ tree shaking : 去除无用代码
+    前题：1.必须使用es6模块化 2.开启production环境
+    作用：减少代码体积
+
+    在package.json中配置： "sideEffects":false
+    作用：所有代码都没有副作用（都可以进行tree shaking）
+    问题：可能会把css/@bable/polyfill 文件干掉
+    "sideEffects":["*.css"]
+
+## 23code split(代码分割)
+### demo1
+配置 webpack.config.js 的entry为多入口:
+> entry:{
+        // 多入口：有一个入口，最终输出就有一个bundle
+        index:'./src/js/index.js',
+        test:'./src/js/test.js'
+    },
+将output的filename改成以下配置（文件名修改可读）
+> output:{
+        // [name]:取文件名,入口的属性名
+        filename:'js/[name].built.[contenthash:10].js',
+        path:resolve(__dirname, 'build')
+    },
+
+### demo2
+配置 webpack.config.js 
+```javascript
+module.exports = {
+    entry:{
+        main:'./src/js/index.js',
+        test:'./src/js/test.js'
+    },
+    output:{
+        // [name]:取文件名,入口的属性名
+        filename:'js/[name].built.[contenthash:10].js',
+        path:resolve(__dirname, 'build')
+    },
+    plugins,
+    /* 
+        1. 可以将 node_modules中代码单独打包一个chunk最终输出
+        2. 自动分析，多入口chunk中，有没有公共的文件。如果有会打包成一个单独的chunk
+    */
+    optimization:{
+        splitChunks:{
+            chunks:'all'
+        }
+    },
+    mode:'production',
+}
+```
+### demo3
+结合demo2的optimization配置，然后在需要调用其它js文件的文件里使用以下代码进行调用
+```javascript
+// 当 webpack.config.js的 filename 配置了 '[name]'时魔法注释才生效
+  /* 
+    output:{
+        // [name]:取文件名,入口的属性名
+        filename:'js/[name].built.[contenthash:10].js',
+        path:resolve(__dirname, 'build')
+    },
+  */
+/* 
+  通过js代码，让某个文件被单独打包成一个chunk
+  import 动态导入语法：能将某个文件单独打包
+*/
+import (/* webpackChunkName:'test' */'./test')
+  .then(({mul, count})=>{
+    // 文件加载成功
+    // eslint-disable-next-line
+    console.log(mul(2,3));
+  })
+  .catch(()=>{
+    // eslint-disable-next-line
+    console.log('文件加载失败');
+  })
+```
+
+## 24lazy loading 懒加载
+> 前提：使用code split 代码分割配置
+/* 
+1. 可以将 node_modules中代码单独打包一个chunk最终输出
+2. 自动分析，多入口chunk中，有没有公共的文件。如果有会打包成一个单独的chunk
+*/
+    optimization:{
+        splitChunks:{
+            chunks:'all'
+        }
+    },
+
+将需要使用的地方，通过import 引入，例如：
+```javascript
+/* 
+  魔法注释webpackChunkName、webpackPrefetch、webpackPreload
+  webpackChunkName: 会将代码进行分割打包，并命名为"test.js"文件
+  webpackPrefetch:true ：来告诉浏览器主线程网络带宽空闲时候，进行加载该模块，当真正运行该模块代码时，浏览器已经加载过一次，此时运行速度就会大大提升
+  webpackPreload:true ：来告诉浏览器主线程跟主线程一起加载，这种方式不太推荐。
+*/
+
+document.getElementById("btn").onclick = function(){
+    // 当 webpack.config.js的 filename 配置了 '[name]'时魔法注释才生效
+  /* 
+    output:{
+        // [name]:取文件名,入口的属性名
+        filename:'js/[name].built.[contenthash:10].js',
+        path:resolve(__dirname, 'build')
+    },
+  */
+  // 懒加载~：当文件需要使用时，才加载
+  // 预加载 prefetch:会在使用之前，提前加载js文件
+  () = > import(/* webpackChunkName: "test", webpackPrefetch: true */ './test')
+  .then(({mul}) => {
+    console.log(mul(2, 3));
+  })
+  
+}
+```
+
+## 25pwa
+>PWA:渐进式网络开发应用程序（离线可访问）
+
+1. 下载插件： npm i workbox-webpack-plugin -D
+    （workbox ---> workbox-webpack-plugin）
+2. 定义插件
+    const WorkboxWebpackPlugin = require('workbox-webpack-plugin')       
+3. 使用插件
+```javascript
+plugins:[
+    new WorkboxWebpackPlugin.GenerateSW({
+            /* 
+                1. 帮助 serviceworker 快速启动
+                2. 删除旧的 serviceworker
+
+                生成一个 serviceworker 配置文件
+            */
+            clientsClaim:true,
+            skipWaiting:true
+        })
+]
+```  
+4. 入口文件编写代码
+```javascript
+/*
+  注册 serviceworker
+*/
+// 处理兼用性问题
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(() => {
+        console.log('serviceworker 注册成功了');
+      })
+      .catch(() => {
+        console.log('serviceworker注册失败了');
+      });
+  });
+}
+```  
+5. 修改package.json 的eslint配置：
+> eslint 不认识 window、navigator全局变量
+  解决：需要修改package.json中eslintConfig配置
+```json
+"eslintConfig": {
+    "extends": "airbnb-base",
+    "env":{
+      "browser":true
+    }
+  },
+```
+
+6.  serviceWorker 代码必须运行在服务器上
+  2.1 -->nodejs
+  2.2 ---> 下载 ：npm i serve -g
+           运行： serve -s build（启动服务器，将build目录下所有资源作为静态资源暴露出去）
+
+## 26多进程打包（thread-loader）
+> 开启多进程打包。
+进程启动时间大概为600ms，进程通信也有时间开销。
+只有工作消耗时间比较长，才需要多进程打包
+
+1. 下载插件：npm i thread-loader -D
+2. 在 babel-loader 之前使用
+```javascript
+{
+    loader:'thread-loader',
+    options:{
+        workers:2//进程2个
+    }
+},
+```
+## 27externals（拒绝一些包进行打包）
+1. 使用：在webpack.config.js中配置
+```javascript
+externals:{
+    // 拒绝jQuery被打包进来
+    jquery:'jQuery'
+}
+```
+2. 在html中使用cdn引入包（速度快，打包时间减短）
+
+## 28dll 
+> 使用 dll 技术，对某些库（第三方库：jquery,vue,react）进行单独打包
+    当你运行 webpack 时，默认查找 webpack.config.js 配置文件
+    需求：需要运行 webpack.dll.js 文件 ---> webpack --config webpack.dll.js
+
+1. 定义webpack.dll.js
+```javascript
+const { resolve } = require("path");
+const webpack = require('webpack');
+module.exports = {
+    
+    entry:{
+        // 最终打包生成的 [name] ---> jquery
+        // ['jquery'] ---> 要打包的库是jquery
+        jquery: ['jquery']
+    },
+    output:{
+        filename:'[name].js',
+        path:resolve(__dirname, 'dll'),
+        library: '[name]_[hash]', // 打包的库里面向外面暴露出去的内容叫什么名字
+    },
+    plugins:[
+        //  打包生成一个 manifest.json  ---> 提供和jquery映射
+        new webpack.DllPlugin({
+            name: '[name]_[hash]', // 映射库的暴露的内容名称
+            path:resolve(__dirname, 'dll/manifest.json') //输出文件路径
+        })
+    ],
+    mode:'production'
+}
+```
+2. 运行指令（webpack --config webpack.dll.js）生成暴露文件内容及信息
+
+3. 下载插件：npm i add-asset-html-webpack-plugin -D
+4. 修改webpack.config.js
+> publicPath:'./', 这是因为，我使用webpack打包后，html引入的jquery.js 的src值为 auto/jquery.js 导致找不到文件。
+```javascript
+const {resolve} = require('path')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const webpack = require('webpack');
+const AddAssetHtmlWebpackPlugin = require('add-asset-html-webpack-plugin');
+
+module.exports = {
+    entry:'./src/index.js',
+    output:{
+        publicPath:'./',
+        filename:'build.js',
+        path:resolve(__dirname, 'build')
+    },
+    plugins:[
+        new HtmlWebpackPlugin({
+            template:'./src/index.html'
+        }),
+        // 告诉webpack哪些库不参与打包，同时使用时的名称也得变
+        new webpack.DllReferencePlugin({
+            manifest:resolve(__dirname, 'dll/manifest.json')
+        }),
+        // 将某个文件打包输出出去，并在html中自动引入该资源
+        new AddAssetHtmlWebpackPlugin({
+            filepath: resolve(__dirname, 'dll/jquery.js'),
+        })
+    ],
+    mode: 'production'
+}
+```
+
