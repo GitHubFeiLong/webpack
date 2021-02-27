@@ -931,3 +931,99 @@ module.exports = {
 }
 ```
 
+## 29entry配置
+webpack.config.js的entry属性的值有三种类型：
++ string（单入口）：打包形成一个chunk，输出一个bundle文件。此时，chunk的名称默认是‘main’
+    ```javascript
+    entry:'./src/index.js'
+    ```
++ array（多入口）: 所有入口文件最终只会形成一个chunk，输出出去只有一个bundle文件，只有在HMR功能中让html热更新失效
+    ```javascript
+    entry:['./src/index.js', './src/add.js']
+    ```
++  object(多入口)：有几个入口文件就形成几个chunk，输出几个bundle文件，此时chunk的名称是key。
+    ```javascript
+        entry:{
+            index:'./src/index.js',
+            add : './src/add.js'
+        },
+    ```
+    特殊用法，此时index.js和count.js打包成一个文件，add.js打包成另一个文件:
+    ```javascript
+        entry:{
+            index:['./src/index.js', './src/count.js'],
+            add : './src/add.js'
+        },
+    ```
+## 30 output
+```javascript
+output:{
+    // 文件名称（指定目录+名称）
+    filename:'[name].built.js',
+    // 输出文件目录（将来所有资源输出的公共目录）
+    path:resolve(__dirname, 'build'),
+    // 所有资源引入的公共路径前缀 --> 路径的前面（script的src路径前缀或link标签href前缀）
+    publicPath: '/',
+    // 非入口chuank的名称
+    chunkFilename:'js/[name]_chunk.js',
+    // 整个库向外暴露的变量名
+    library: '[name]',
+    // 变量名添加到哪个上
+    // libraryTarget:'window', // 变量名添加到哪个上 browers
+    // libraryTarget:'window', // 变量名添加到哪个上 node
+    libraryTarget:'commonjs',
+},
+```    
+## 31module
+```javascript
+module:{
+    rules:[
+        // loader的配置
+        {
+            test:/\.css$/,
+            // 多个loader用use
+            use:['style-loacer', 'css-loader']
+        },
+        {
+            test:'\.js$',
+            // 排除 node_modules 下的js文件
+            exclude:/node_modules/,
+            // 只检查 src 下的js文件
+            include: resolve(__dirname, 'src'),
+            // 优先执行('pre'),延后执行（'post'）
+            enforce: 'pre',
+            // 单个loader
+            loader:'eslint-loader',
+            // 其它配置
+            options:{}
+        },{
+            // 以下配置只会生效一个
+            oneOf:[]
+        }
+    ]
+},
+```    
+## 32resolve
+```javascript
+// 解析模块的规则
+resolve:{
+    // 配置解析模块路径别名：优点简写路径，缺点路径没有提示
+    alias:{
+        $css:resolve(__dirname, 'src/css')
+    },
+    // 配置省略文件路径的后缀名
+    extensions:['.js', '.json', '.jsx','.css'],
+    // 告诉 webpack 解析模块的时候去找哪个目录
+    modules:[resolve(__dirname, '../../node_modules/'),'node_modules']
+}
+```
+例如下：
+直接使用`$css` 变量来代替 路径前缀
+```javascript
+import '$css/index.css';
+```
+如果配置了 extensions 值 
+先找 ‘index.js’ 找不到再找'index.json' 如此往下接着找    
+```javascript
+import '$css/index';
+```   
