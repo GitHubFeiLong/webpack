@@ -1,6 +1,6 @@
 # webpack
 观看尚硅谷webpack视频教程进行动手实战
-> 目前看到第30节已完成
+> 目前看到第37节已完成
 
 ## 初始化 package.json
 输入指令: npm init
