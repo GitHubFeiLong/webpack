@@ -1027,3 +1027,103 @@ import '$css/index.css';
 ```javascript
 import '$css/index';
 ```   
+## 33 dev server
+```javascript
+devServer:{
+    // 运行代码的目录
+    contentBase: resolve(__dirname, 'build'),
+    // 监视contentBase 目录下的所有文件，一旦文件变化就会 reload
+    watchContentBase:true,
+    watchOptions:{
+        // 忽略文件
+        ignored:/node_modules/
+    },
+    // 启动gzip压缩
+    compress:true,
+    // 端口号
+    port: 5000,
+    // 域名
+    host: 'localhost',
+    // 自动打开默认浏览器
+    open: true,
+    // 开启HMR功能
+    hot: true,
+    // 不需要显示启动服务器日志信息
+    clientLogLevel: 'none',
+    // 除了一些基本启动信息以外，其他内容都不要显示
+    quiet: true,
+    // 如果出错了，不要全屏提示
+    overlay:false,
+    // 服务器代理 ---> 解决开发环境跨域问题
+    proxy:{
+        // 一旦 devServer（5000） 接收到 /api/xxx 的请求，就会把请求转发到另外一个服务器(target)
+        '/api':{
+            target:'http://localhost:3000',
+            // 发送请求时，请求路径重写，将 /api/xxx ---> /xxx （去掉/api）
+            pathRewrite:{
+                '^/api':''
+            }
+        }
+    }
+}
+```
+
+## 34 optimization
+```javascript
+optimization:{
+    splitChunks:{
+        chunks:'all',
+        // 分割的chunk最小为30kb
+        // 以下注释都是默认值
+        /* minSize: 30*1024,
+        // 最大没有限制
+        maxSize:0,
+        // 要提取的chunks 最少被引用1次
+        minChunks:1,
+        // 按需加载时，并行加载的文件的最大数量
+        maxAsyncRequests: 5,
+        // 入口js文件最大并行请求数量
+        maxInitialRequests:3,
+        // 名称连接符
+        automaticNameDelimiter:'~',
+        // 可以使用命名规则
+        name:true,
+        // 分割chunk的组
+        cacheGroups:{
+            // node_modules文件会被打包到 vendors 组的chunk中。 ---> vendors~xxx.js
+            // 满足上面的公共规则，如大小超过30kb，至少被引用一次
+            vendors:{
+                test:/[\\/]node_modules[\\/]/,
+                // 优先级
+                priority:-10
+            },
+            default:{
+                // 要提取的chunk最少被引用2次
+                minChunks:2,
+                // 优先级
+                priority:-20,
+                // 如果当前要打包的模块，和之前已经被提取的模块是同一个，就会复用，而不是重新打包模块
+                reuseExistingChunk:true
+            }
+
+        } */
+    },
+    // 将当前模块的记录其他模块的hash单独打包为一个文件 runtime
+    // 解决：修改a文件导致b文件的contenthash变化
+    runtimeChunk:{
+        name:entrypoint => `runtime-${entrypoint.name}`
+    },
+    minimizer:[
+        // 配置生产环境的压缩方案：js和css
+        new TerserWebpackPlugin({
+            // 开启缓存
+            cache: true,
+            // 开启多进程打包
+            parallel:true,
+            // 启动source-map
+            sourceMap:true,
+        })
+    ]
+        
+}
+```
